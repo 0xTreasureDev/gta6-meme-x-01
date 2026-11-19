@@ -36,7 +36,22 @@ try {
 }
 
 const url = (parsed as { url?: unknown } | null)?.url;
-if (typeof url !== 'string' || !url.startsWith('https://') || !url.includes('/status/')) {
+if (typeof url !== 'string') {
+  fail('POST.json must be an object whose "url" is an X post address');
+}
+
+// Parse the address properly instead of trusting substrings: the host must
+// be x.com (twitter.com still resolves to the same posts) and the path must
+// be exactly /<handle>/status/<numeric id>, nothing before or after it.
+let address: URL;
+try {
+  address = new URL(url!);
+} catch {
+  fail('POST.json "url" is not a parseable address');
+}
+const hostOk = address.hostname === 'x.com' || address.hostname === 'twitter.com';
+const pathOk = /^\/[A-Za-z0-9_]{1,15}\/status\/\d+$/.test(address.pathname);
+if (address.protocol !== 'https:' || !hostOk || !pathOk) {
   fail('POST.json must be an object whose "url" is an X post address');
 }
 
